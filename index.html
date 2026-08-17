@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Climate Week Guide Builder</title>
+<meta name="description" content="How the Climate Week Guide Builder plugin turns a city's climate week calendar into a publishable Substack guide: the pipeline, the human checkpoints, and what comes out." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* Mintlify palette */
+    --primary: #0a0a0a;
+    --on-primary: #ffffff;
+    --green: #00d4a4;
+    --green-deep: #00b48a;
+    --green-tint: rgba(0, 212, 164, 0.10);
+    --sky-from: #87a8c8;
+    --sky-to: #f5e9d8;
+    --dark-from: #1a3d4a;
+    --dark-to: #2d5a4f;
+    --orange: #f55a3c;
+    --orange-deep: #cc3a1f;
+    --orange-tint: rgba(245, 90, 60, 0.13);
+    --orange-line: rgba(245, 90, 60, 0.35);
+    --canvas: #ffffff;
+    --surface: #f7f7f7;
+    --surface-soft: #fafafa;
+    --surface-code: #1c1c1e;
+    --hairline: #e5e5e5;
+    --hairline-soft: #ededed;
+    --hairline-dark: #1f1f1f;
+    --ink: #0a0a0a;
+    --charcoal: #1c1c1e;
+    --slate: #3a3a3c;
+    --steel: #5a5a5c;
+    --stone: #888888;
+    --muted: #a8a8aa;
+    --on-dark: #ffffff;
+    --on-dark-muted: #b3b3b3;
+    /* type */
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "Geist Mono", "SF Mono", Menlo, Consolas, monospace;
+    /* radius */
+    --r-xs: 4px; --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-full: 9999px;
+    /* depth */
+    --shadow-card: rgba(0, 0, 0, 0.08) 0px 4px 12px 0px;
+    --shadow-mockup: rgba(0, 0, 0, 0.12) 0px 24px 48px -8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body {
+    font-family: var(--sans);
+    font-size: 16px; line-height: 1.5; color: var(--ink);
+    background: var(--canvas);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 { font-size: clamp(2.25rem, 6vw, 4.5rem); font-weight: 600; line-height: 1.05; letter-spacing: -0.028em; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.25rem); font-weight: 600; line-height: 1.2; letter-spacing: -0.014em; margin-bottom: 12px; }
+  h3 { font-size: 22px; font-weight: 600; line-height: 1.3; margin: 32px 0 8px; }
+  h3:first-child { margin-top: 0; }
+  .h5, .card-title { font-size: 18px; font-weight: 600; line-height: 1.4; margin: 0 0 8px; }
+  p { max-width: 40em; }
+  .desc { margin: 12px 0; color: var(--slate); }
+  .desc.dim, .small { font-size: 14px; line-height: 1.5; color: var(--steel); }
+  a { color: inherit; }
+  strong { font-weight: 600; }
+
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--steel); margin-bottom: 12px;
+  }
+
+  .band { width: 100%; }
+  .band-canvas { background: var(--canvas); }
+  .band-surface { background: var(--surface-soft); border-top: 1px solid var(--hairline-soft); border-bottom: 1px solid var(--hairline-soft); }
+  .band-hero { background: linear-gradient(180deg, var(--sky-from) 0%, var(--sky-to) 100%); }
+  .band-teal { background: linear-gradient(135deg, var(--dark-from) 0%, var(--dark-to) 100%); color: var(--on-dark); }
+  .band-teal h2, .band-teal h3 { color: var(--on-dark); }
+  .band-teal .eyebrow { color: #cfdcd8; }
+  /* lighter than --on-dark-muted: that value only clears 3.6:1 against the pale end of the gradient */
+  .band-teal .desc { color: #e2eae7; }
+  .band-teal .card { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); }
+  .band-teal .card .card-title { color: var(--on-dark); }
+  .band-teal .card p, .band-teal .card li { color: var(--on-dark-muted); }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 96px 32px; }
+  .wrap.tight { padding: 64px 32px; }
+
+  /* ---------- nav ---------- */
+  .nav { position: sticky; top: 0; z-index: 50; background: var(--canvas); border-bottom: 1px solid var(--hairline-soft); }
+  .nav-inner {
+    max-width: 1280px; margin: 0 auto; padding: 0 32px; height: 64px;
+    display: flex; align-items: center; gap: 32px;
+  }
+  .nav-brand { font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; white-space: nowrap; letter-spacing: -0.01em; }
+  .nav-links { display: flex; gap: 24px; margin-left: auto; }
+  .nav-links a { font-size: 14px; font-weight: 500; color: var(--steel); text-decoration: none; white-space: nowrap; }
+  .nav-links a:hover { color: var(--ink); }
+  @media (max-width: 980px) {
+    .nav-inner { height: auto; flex-direction: column; align-items: stretch; gap: 0; padding: 0; }
+    .nav-brand { padding: 12px 16px 6px; white-space: normal; }
+    .nav-links { margin-left: 0; overflow-x: auto; padding: 0 16px 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    html { scroll-padding-top: 104px; }
+  }
+
+  /* ---------- buttons: pills ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--sans); font-size: 14px; font-weight: 500; line-height: 1.3;
+    padding: 10px 20px; border-radius: var(--r-full); border: 1px solid var(--primary);
+    background: var(--primary); color: var(--on-primary); cursor: pointer; text-decoration: none;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+  .btn:hover { background: var(--charcoal); border-color: var(--charcoal); }
+  .btn.green { background: var(--green); border-color: var(--green); color: var(--primary); }
+  .btn.green:hover { background: var(--green-deep); border-color: var(--green-deep); }
+  .btn.outline { background: transparent; border-color: var(--hairline); color: var(--ink); }
+  .btn.outline:hover { border-color: var(--stone); background: var(--surface); }
+
+  /* ---------- cards ---------- */
+  .card {
+    background: var(--canvas); border: 1px solid var(--hairline);
+    border-radius: var(--r-lg); padding: 24px;
+  }
+  .grid { display: grid; gap: 16px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1023px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 767px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+
+  /* check list (mint checkmarks) */
+  ul.checks { list-style: none; margin-top: 4px; }
+  ul.checks li {
+    position: relative; padding-left: 26px; margin-bottom: 10px;
+    font-size: 14px; line-height: 1.5; color: var(--slate);
+  }
+  ul.checks li:last-child { margin-bottom: 0; }
+  ul.checks li::before {
+    content: ""; position: absolute; left: 0; top: 3px; width: 16px; height: 16px;
+    border-radius: var(--r-full); background: var(--green-tint);
+  }
+  ul.checks li::after {
+    content: ""; position: absolute; left: 4.5px; top: 7px; width: 7px; height: 4px;
+    border-left: 1.6px solid var(--green-deep); border-bottom: 1.6px solid var(--green-deep);
+    transform: rotate(-45deg);
+  }
+  ul.checks strong { color: var(--ink); }
+
+  /* crossed list: things it never asks for */
+  ul.nots { list-style: none; margin-top: 4px; }
+  ul.nots li {
+    position: relative; padding-left: 26px; margin-bottom: 10px;
+    font-size: 14px; line-height: 1.5; color: var(--slate);
+  }
+  ul.nots li:last-child { margin-bottom: 0; }
+  ul.nots li::before {
+    content: ""; position: absolute; left: 0; top: 3px; width: 16px; height: 16px;
+    border-radius: var(--r-full); background: var(--surface); border: 1px solid var(--hairline);
+  }
+  ul.nots li::after {
+    content: ""; position: absolute; left: 4px; top: 10.5px; width: 8px; height: 0;
+    border-top: 1.6px solid var(--stone);
+  }
+  ul.nots strong { color: var(--ink); }
+
+  /* ---------- who badges ---------- */
+  .who {
+    display: inline-flex; align-items: center; font-size: 12px; font-weight: 500;
+    padding: 2px 10px; border-radius: var(--r-full); white-space: nowrap; vertical-align: middle;
+  }
+  .who.claude { background: var(--orange-deep); color: var(--on-dark); }
+  .who.you { background: var(--canvas); color: var(--steel); border: 1px solid var(--hairline); }
+  .who.both { background: var(--orange-tint); color: var(--orange-deep); border: 1px solid var(--orange-line); }
+  .who.gate { background: var(--orange); color: var(--on-dark); font-weight: 600; }
+
+  /* type badges (mono chips) */
+  .tag {
+    font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--steel);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--r-sm); padding: 2px 6px; white-space: nowrap;
+  }
+  code {
+    font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--charcoal);
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: var(--r-xs); padding: 2px 6px;
+  }
+
+  /* ---------- lists ---------- */
+  ul.plain, ol.plain { margin: 12px 0 0 20px; max-width: 42em; }
+  ul.plain li, ol.plain li { margin-bottom: 10px; font-size: 14px; line-height: 1.55; color: var(--slate); }
+  ul.plain strong, ol.plain strong { font-weight: 600; color: var(--ink); }
+
+  /* callout */
+  .note {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 3px solid var(--green); border-radius: var(--r-md);
+    padding: 14px 18px; margin-top: 16px;
+    font-size: 14px; line-height: 1.55; color: var(--slate); max-width: 44em;
+  }
+  .note strong { font-weight: 600; color: var(--ink); }
+  .note.warn { border-left-color: var(--orange); }
+  .note.quiet { border-left-color: var(--hairline); }
+
+  /* ---------- statement card ---------- */
+  .statement {
+    background: var(--orange); color: var(--on-dark);
+    border-radius: var(--r-lg); padding: clamp(32px, 6vw, 64px);
+    max-width: 1280px; margin: 0 auto;
+  }
+  .statement .big {
+    color: var(--on-dark); font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 600;
+    line-height: 1.2; letter-spacing: -0.014em; max-width: 24em; margin: 0;
+  }
+  .statement p { color: rgba(255, 255, 255, 0.92); font-size: 16px; max-width: 42em; margin-top: 14px; }
+
+  /* ---------- hero ---------- */
+  .hero-wrap { max-width: 1280px; margin: 0 auto; padding: 110px 32px 96px; text-align: center; }
+  .hero-wrap h1 { max-width: 15em; margin: 0 auto; }
+  .hero-sub { font-size: 18px; line-height: 1.5; color: var(--slate); max-width: 38em; margin: 20px auto 0; }
+  .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+  .hero-facts {
+    background: var(--canvas); border: 1px solid var(--hairline-soft); border-radius: var(--r-lg);
+    box-shadow: var(--shadow-mockup); padding: 8px 24px;
+    max-width: 760px; margin: 56px auto 0; text-align: left;
+    display: grid; grid-template-columns: repeat(3, 1fr);
+  }
+  .hero-facts div { padding: 20px 8px; }
+  .hero-facts div + div { border-left: 1px solid var(--hairline-soft); padding-left: 24px; }
+  .hero-facts .n { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; color: var(--ink); }
+  .hero-facts .l { font-size: 13px; line-height: 1.45; color: var(--steel); margin-top: 6px; }
+  @media (max-width: 640px) {
+    .hero-facts { grid-template-columns: 1fr; padding: 0 24px; }
+    .hero-facts div + div { border-left: none; border-top: 1px solid var(--hairline-soft); padding-left: 8px; }
+  }
+
+  /* ---------- evidence table ---------- */
+  .tablewrap { overflow-x: auto; margin-top: 24px; }
+  table.data {
+    border-collapse: separate; border-spacing: 0; width: 100%; min-width: 520px; max-width: 860px;
+    background: var(--canvas); border: 1px solid var(--hairline); border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  table.data th {
+    text-align: left; padding: 12px 20px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase; color: var(--steel);
+    background: var(--surface-soft); border-bottom: 1px solid var(--hairline);
+  }
+  table.data td {
+    text-align: left; padding: 14px 20px; font-size: 14px; color: var(--slate);
+    border-bottom: 1px solid var(--hairline-soft); vertical-align: top;
+  }
+  table.data td:first-child { font-weight: 500; color: var(--ink); }
+  table.data th.num, table.data td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.data tr:last-child td { border-bottom: none; }
+
+  /* ---------- the pipeline stepper ---------- */
+  .legend-row { display: flex; gap: 24px; flex-wrap: wrap; margin: 20px 0 8px; }
+  .legend-row span { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--slate); }
+  .dotkey { width: 13px; height: 13px; border-radius: var(--r-full); flex: 0 0 auto; }
+  .dotkey.auto { background: var(--orange-deep); }
+  .dotkey.human { background: var(--canvas); border: 1.5px solid var(--stone); }
+  .dotkey.mix { background: var(--orange-tint); border: 1.5px solid var(--orange-line); }
+  .dotkey.hard { background: var(--orange); box-shadow: 0 0 0 3px var(--orange-tint); }
+
+  .pipe { list-style: none; margin: 32px 0 0; max-width: 52em; }
+  .pipe > li { position: relative; padding-left: 52px; padding-bottom: 20px; }
+  /* the rail */
+  .pipe > li::before {
+    content: ""; position: absolute; left: 10px; top: 22px; bottom: -2px;
+    width: 2px; background: var(--hairline);
+  }
+  .pipe > li:last-child::before { display: none; }
+  /* the node */
+  .pipe > li > .node {
+    position: absolute; left: 0; top: 8px; width: 22px; height: 22px;
+    border-radius: var(--r-full); background: var(--orange-deep);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; color: var(--on-dark); letter-spacing: -0.02em;
+  }
+  .pipe > li.human > .node { background: var(--canvas); border: 1.5px solid var(--stone); color: var(--steel); }
+  .pipe > li.mix > .node { background: var(--orange-tint); border: 1.5px solid var(--orange-line); color: var(--orange-deep); }
+  .pipe > li.hard > .node { background: var(--orange); color: var(--on-dark); box-shadow: 0 0 0 4px var(--orange-tint); }
+
+  .stage {
+    background: var(--canvas); border: 1px solid var(--hairline);
+    border-radius: var(--r-lg); padding: 18px 20px;
+  }
+  .pipe > li.hard .stage { border-color: var(--orange-line); border-left: 3px solid var(--orange); background: var(--surface-soft); }
+  .stage-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .stage-head .name { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink); letter-spacing: -0.01em; }
+  .stage-out { font-size: 14px; line-height: 1.55; color: var(--slate); margin-top: 8px; max-width: none; }
+  .stage-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .stage-note { font-size: 13px; line-height: 1.55; color: var(--steel); margin-top: 10px; max-width: none; }
+
+  /* ---------- artifact rows ---------- */
+  ul.arts { list-style: none; margin-top: 24px; max-width: 52em; }
+  ul.arts li { padding: 20px 0; border-bottom: 1px solid var(--hairline-soft); }
+  ul.arts li:last-child { border-bottom: none; }
+  ul.arts .fname { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--ink); }
+  ul.arts .role { font-size: 13px; color: var(--steel); margin-left: 8px; }
+  ul.arts p { font-size: 14px; line-height: 1.55; color: var(--slate); margin-top: 8px; max-width: 44em; }
+
+  /* ---------- before / after ---------- */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; max-width: 56em; }
+  @media (max-width: 767px) { .ba { grid-template-columns: 1fr; } }
+  .ba > div { border-radius: var(--r-md); padding: 16px 20px; font-size: 15px; line-height: 1.55; border: 1px solid var(--hairline); }
+  .ba .bad { background: var(--surface); }
+  .ba .good { background: var(--green-tint); border-color: rgba(0, 212, 164, 0.3); }
+  .ba .verdict { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; color: var(--steel); }
+  .ba .good .verdict { color: var(--green-deep); }
+  .ba q { font-style: normal; color: var(--ink); }
+
+  /* ---------- code sample ---------- */
+  .code-card { background: var(--surface-code); border-radius: var(--r-md); margin-top: 16px; max-width: 46em; overflow: hidden; }
+  .code-card .head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 16px; border-bottom: 1px solid var(--hairline-dark);
+    font-size: 13px; color: var(--on-dark-muted);
+  }
+  pre.code {
+    padding: 16px; font-family: var(--mono); font-size: 13px; line-height: 1.6;
+    color: var(--on-dark); white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+  }
+  pre.code .dim { color: var(--stone); }
+  pre.code .ok { color: var(--green); }
+
+  /* ---------- faq / accordions ---------- */
+  .faq-stack { margin-top: 24px; max-width: 52em; display: grid; gap: 10px; }
+  details.faq { background: var(--canvas); border: 1px solid var(--hairline-soft); border-radius: var(--r-md); padding: 0 24px; }
+  details.faq summary {
+    cursor: pointer; list-style: none; padding: 18px 0; font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: "+"; font-size: 20px; font-weight: 400; color: var(--steel); flex: 0 0 auto; }
+  details.faq[open] summary::after { content: "\2013"; }
+  details.faq .body { padding: 0 0 20px; font-size: 15px; color: var(--steel); line-height: 1.6; max-width: 44em; }
+  details.faq .body p + p { margin-top: 12px; }
+
+  /* ---------- footer ---------- */
+  .footer { background: var(--canvas); border-top: 1px solid var(--hairline); padding: 64px 32px; }
+  .footer-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 48px; }
+  @media (max-width: 767px) { .footer-grid { grid-template-columns: 1fr; gap: 32px; } }
+  .footer .head5 { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 16px; }
+  .footer p { font-size: 14px; line-height: 1.6; color: var(--steel); }
+  .footer ul { list-style: none; }
+  .footer li { padding: 4px 0; font-size: 14px; line-height: 1.6; color: var(--steel); }
+  .footer a { font-size: 14px; color: var(--steel); text-decoration: none; }
+  .footer a:hover { color: var(--ink); }
+
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--green); outline-offset: 2px; border-radius: var(--r-xs);
+  }
+
+  @media (max-width: 767px) {
+    .wrap { padding: 56px 16px; }
+    .wrap.tight { padding: 40px 16px; }
+    .hero-wrap { padding: 64px 16px 56px; }
+    .statement { border-radius: 0; }
+    .pipe > li { padding-left: 42px; }
+    .pipe > li::before { left: 10px; }
+    .stage { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">Climate Week Guide Builder</a>
+    <div class="nav-links">
+      <a href="#evidence">Evidence</a>
+      <a href="#before">Before you start</a>
+      <a href="#pipeline">The pipeline</a>
+      <a href="#asks">What it asks</a>
+      <a href="#output">What you get</a>
+      <a href="#rules">House rules</a>
+      <a href="#qa">Quality gates</a>
+      <a href="#trouble">When it breaks</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<div class="band band-hero" id="top">
+  <div class="hero-wrap">
+    <h1>Turn a city's climate week into a guide worth reading.</h1>
+    <p class="hero-sub">The Climate Week Guide Builder takes a raw event calendar and produces a finished, publishable Substack guide: a hundred-plus pages, twenty-plus themed sections, every event categorised and linked, in Climate Tech Cities house voice.</p>
+    <div class="hero-ctas">
+      <a class="btn" href="#pipeline">See the pipeline</a>
+      <a class="btn outline" href="#before">What you need first</a>
+    </div>
+    <div class="hero-facts">
+      <div>
+        <div class="n">8 skills</div>
+        <div class="l">Not a single prompt. A pipeline of eight skills that hand work to each other.</div>
+      </div>
+      <div>
+        <div class="n">7 of 12 steps</div>
+        <div class="l">Need you for something. One of them stops dead and waits.</div>
+      </div>
+      <div>
+        <div class="n">More than one sitting</div>
+        <div class="l">A full run for a large city does not finish in a single session.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT THIS IS -->
+<div class="band band-canvas">
+  <div class="wrap">
+    <p class="eyebrow">What this is</p>
+    <h2>The guide's value is not that it is comprehensive</h2>
+    <blockquote class="statement" style="margin-top:32px;">
+      <p class="big">A climate week throws hundreds of events at people, and the official site lists a fraction of them. The guide's value isn't that it's comprehensive. It's that it has a point of view and makes the week navigable.</p>
+    </blockquote>
+    <p class="desc" style="margin-top:40px;">That distinction shapes the whole pipeline. The curated sections, Top Hits and the per-category Highlights, are where the point of view lives. The All Events lists underneath them are the repository, so nothing gets lost. The plugin builds both, from one dataset, so the numbers never disagree between sections.</p>
+    <p class="desc">This page is for a chapter lead who has just installed the plugin and has never run it. It covers what you need before you start, what the plugin will ask you for, where it stops and waits, and what comes out at the end.</p>
+  </div>
+</div>
+
+<!-- EVIDENCE -->
+<div class="band band-surface" id="evidence">
+  <div class="wrap">
+    <p class="eyebrow">The evidence base</p>
+    <h2>What it is built from</h2>
+    <p class="desc">The plugin's rules are not invented. They are derived from four published guides, which ship inside the plugin as reference material and can be read at full length whenever a rule is ambiguous.</p>
+    <div class="tablewrap">
+      <table class="data">
+        <thead>
+          <tr><th scope="col">Guide</th><th scope="col" class="num">Events</th><th scope="col" class="num">Categories</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>The Great London Climate Action Week 2026 Guide</td><td class="num">1,000+</td><td class="num">26</td></tr>
+          <tr><td>The Great NY Climate Week 2025 Guide</td><td class="num">506</td><td class="num">25</td></tr>
+          <tr><td>The Great PNW Climate Week 2026 Guide</td><td class="num">277</td><td class="num">22</td></tr>
+          <tr><td>The Great Chicago Climate Week 2026 Guide</td><td class="num">141</td><td class="num">24</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><strong>The formatting spec was built by fetching the live published HTML, not by reading pasted copies.</strong> Pasting a Substack post into Word destroys heading levels, blockquotes, and images. That is why the plugin's output actually matches the real posts rather than a plausible-looking approximation of them.</div>
+  </div>
+</div>
+
+<!-- PREREQUISITES -->
+<div class="band band-canvas" id="before">
+  <div class="wrap">
+    <p class="eyebrow">Prerequisites</p>
+    <h2>Before you start</h2>
+    <p class="desc">Four things. The second one has no workaround, so check it before you begin rather than halfway through Stage 0b.</p>
+    <div class="grid grid-2" style="margin-top:32px;">
+      <div class="card">
+        <p class="card-title">A Luma calendar URL</p>
+        <p class="small">The city's climate week calendar, at <code>luma.com/&lt;handle&gt;</code>. This is what the events get scraped from.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">The Claude-in-Chrome extension</p>
+        <p class="small">A hard requirement, with no fallback. Luma's pages are JavaScript-rendered, and its API only accepts calls from a <code>luma.com</code> origin, so plain fetching returns an empty shell.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">An Airtable account with the MCP connector enabled</p>
+        <p class="small">Used for the events base and the public submission form built in Stage 1c.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Roughly an hour of your own attention</p>
+        <p class="small">Spread across the run, at the human checkpoints in the pipeline below. Not one continuous hour.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div class="band band-surface" id="pipeline">
+  <div class="wrap">
+    <p class="eyebrow">The core of it</p>
+    <h2>The pipeline</h2>
+    <p class="desc">Seven numbered stages, twelve steps in all. Each step names what it produces and whether it needs you. The steps that need you are the ones worth reading first, because they are what you have to be around for.</p>
+
+    <div class="legend-row">
+      <span><i class="dotkey auto" aria-hidden="true"></i> Runs on its own</span>
+      <span><i class="dotkey mix" aria-hidden="true"></i> Runs, but asks you something</span>
+      <span><i class="dotkey human" aria-hidden="true"></i> You do it</span>
+      <span><i class="dotkey hard" aria-hidden="true"></i> Hard gate, the pipeline stops</span>
+    </div>
+
+    <ol class="pipe">
+      <li class="mix">
+        <span class="node" aria-hidden="true">0</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Intake and city profile</span></div>
+          <p class="stage-out">Produces a city profile and a set of confirmed parameters: city, official week name, year, publisher, timezone, and the local detail the writing leans on.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-guide</span> <span class="who both">You answer questions</span></div>
+        </div>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true">0b</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Source the events</span></div>
+          <p class="stage-out">Produces the 13-column events spreadsheet, scraped from the city's Luma calendar.</p>
+          <div class="stage-meta"><span class="tag">climate-week-event-sourcer</span> <span class="who claude">Automated</span></div>
+        </div>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true">1</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Clean and categorise</span></div>
+          <p class="stage-out">Produces a normalised <code>events.csv</code>. This is the source of truth: every later stage reads it, which is how counts, dates, neighbourhoods, and links stay consistent across sections.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-data-prep</span> <span class="who claude">Automated</span></div>
+        </div>
+      </li>
+      <li class="hard">
+        <span class="node" aria-hidden="true">1b</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Verify the spreadsheet</span> <span class="who gate">Hard gate</span></div>
+          <p class="stage-out">Produces the approved file, handed back. You open it, check the columns, the category names, and a few rows.</p>
+          <div class="stage-meta"><span class="who you">You do this</span></div>
+          <p class="stage-note">This is the one place the pipeline stops dead and waits. It will not proceed on silence.</p>
+        </div>
+      </li>
+      <li class="mix">
+        <span class="node" aria-hidden="true">1c</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Airtable base and public form</span></div>
+          <p class="stage-out">Produces the base, the published submission form, and the two public links the guide's front matter embeds. Both are per-city and never reusable.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-airtable</span> <span class="who both">You approve publishing</span></div>
+        </div>
+      </li>
+      <li class="mix">
+        <span class="node" aria-hidden="true">1d</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Voice calibration</span></div>
+          <p class="stage-out">Optional. Paste in two or three samples of your own writing and the prose comes out in your register rather than generic house style. Saying skip is fine, and it will not ask twice.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-guide</span> <span class="who both">Optional</span></div>
+        </div>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true">1e</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Start checkpointing</span></div>
+          <p class="stage-out">Produces <code>CHECKPOINT.md</code> and copies the category images into the output folder. Both happen before any prose is written, which is what makes a mid-run crash survivable.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-guide</span> <span class="who claude">Automated</span></div>
+        </div>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true">2</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Top Hits</span></div>
+          <p class="stage-out">Produces 20 to 30 day-by-day picks, from opening weekend through to closing weekend.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-top-hits</span> <span class="who claude">Automated</span></div>
+        </div>
+      </li>
+      <li class="mix">
+        <span class="node" aria-hidden="true">3</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Front matter</span></div>
+          <p class="stage-out">Produces the title, the welcome, the About blocks, and the sign-off.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-intro</span> <span class="who both">You supply links</span></div>
+        </div>
+      </li>
+      <li class="mix">
+        <span class="node" aria-hidden="true">4</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Category body</span></div>
+          <p class="stage-out">Produces one section per category, each with a one-line intro, a set of highlights, and the full All Events list.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-category-guide</span> <span class="who both">You approve any folds</span></div>
+        </div>
+      </li>
+      <li>
+        <span class="node" aria-hidden="true">5</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">Assemble</span></div>
+          <p class="stage-out">Produces <code>guide.docx</code> and <code>guide.html</code>, stitched from the files on disk in the canonical order.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-guide</span> <span class="who claude">Automated</span></div>
+        </div>
+      </li>
+      <li class="mix">
+        <span class="node" aria-hidden="true">6</span>
+        <div class="stage">
+          <div class="stage-head"><span class="name">QA</span></div>
+          <p class="stage-out">Produces a defect list and an editorial note. The guide is not done until this passes with zero hard-rule violations.</p>
+          <div class="stage-meta"><span class="tag">ctc-climate-week-qa</span> <span class="who both">You review</span></div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- STAGE 1B CALLOUT -->
+<div class="band band-teal">
+  <div class="wrap">
+    <p class="eyebrow">The one that matters</p>
+    <h2>Why Stage 1b deserves your attention</h2>
+    <p class="desc" style="font-size:17px;max-width:44em;">The approved spreadsheet becomes the schema for the Airtable base. Once that base is published, the structure is frozen and reused for every future city. An error you wave through at Stage 1b propagates forever.</p>
+    <p class="desc" style="max-width:44em;">It is also the only step in the pipeline that stops dead. Everything before it is preparation and everything after it is writing. If you are going to give the run your full attention once, give it here.</p>
+  </div>
+</div>
+
+<!-- WHAT IT ASKS -->
+<div class="band band-canvas" id="asks">
+  <div class="wrap">
+    <p class="eyebrow">Inputs</p>
+    <h2>What it asks you for, and what it never asks</h2>
+    <p class="desc">Chapter leads get anxious about being asked for things they do not have. Here is the concrete list, in both directions.</p>
+    <div class="grid grid-2" style="margin-top:32px;">
+      <div class="card">
+        <p class="card-title">It will ask for</p>
+        <ul class="checks">
+          <li>Byline names and each person's <strong>Substack profile URL</strong></li>
+          <li>Sign-off names and each person's <strong>LinkedIn URL</strong></li>
+          <li>The <strong>official week website</strong> and the <strong>official submit page</strong></li>
+          <li>The <strong>host city's own chapter Substack URL</strong></li>
+          <li>Confirmation before <strong>folding a thin category</strong></li>
+          <li>Consent before <strong>publishing the public submission form</strong></li>
+          <li>Optionally, <strong>writing samples</strong> so the prose sounds like you</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="card-title">It never asks for, because these are already inside the plugin</p>
+        <ul class="nots">
+          <li>The <strong>26 category cover images</strong>, Nicole Kelner artwork, bundled as real files</li>
+          <li>The <strong>volunteer and start-a-chapter Airtable form</strong></li>
+          <li>The <strong>nine other chapter URLs</strong>, the two Streetlife typeform links, and Nicole's artist links</li>
+          <li>The <strong>events view and submission form links</strong>, which Stage 1c generates</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note"><strong>Anything you cannot supply becomes a bracketed placeholder.</strong> It is highlighted yellow in the Word document and listed in a <code>MANUAL-INPUTS.md</code> register that ships with every guide. Nothing is silently invented, and no plausible-looking URL is ever made up to fill a gap.</div>
+  </div>
+</div>
+
+<!-- WHAT YOU GET -->
+<div class="band band-surface" id="output">
+  <div class="wrap">
+    <p class="eyebrow">Output</p>
+    <h2>What you get</h2>
+    <p class="desc">Four artifacts. The distinction between the first two is the thing people get wrong, so it is worth reading before you publish rather than after.</p>
+    <ul class="arts">
+      <li>
+        <span class="fname">guide.html</span><span class="role">the publishing file</span>
+        <p>Open it in a browser, select all, copy, and paste into Substack. Formatting and images survive intact. Images are inlined as base64 at 800px, so the file is self-contained: 23 MB of source PNGs becomes about 2.3 MB.</p>
+      </li>
+      <li>
+        <span class="fname">guide.docx</span><span class="role">archival and shareable</span>
+        <p>Embedded hyperlinks on every event title, a cover image at the top of each category section, and every unfilled placeholder highlighted yellow so it is visible while scrolling.</p>
+      </li>
+      <li>
+        <span class="fname">MANUAL-INPUTS.md</span><span class="role">the register</span>
+        <p>Every slot still needing your attention: where it sits in the guide, and what it currently says.</p>
+      </li>
+      <li>
+        <span class="fname">CHECKPOINT.md</span><span class="role">the resume file</span>
+        <p>Progress and settled decisions, so a fresh session can pick up where the last one stopped without redoing work.</p>
+      </li>
+    </ul>
+
+    <h3 style="margin-top:48px;">Why HTML rather than markdown</h3>
+    <p class="desc">This is the single most useful practical tip on the page. Substack's editor is rich-text, and it reads rendered HTML off the clipboard. It does not parse markdown on paste. Paste the markdown and you get the literal <code>##</code> and <code>&gt;</code> characters on screen, leaving every link and every image to be rebuilt by hand across a hundred pages.</p>
+    <div class="code-card">
+      <div class="head"><span>The round trip that works</span></div>
+<pre class="code">markdown source  <span class="dim">→</span>  rendered HTML file  <span class="dim">→</span>  open in browser  <span class="dim">→</span>  select all + copy  <span class="dim">→</span>  paste
+<span class="ok">                                                                  works</span>
+
+markdown source  <span class="dim">→</span>  paste
+<span class="dim">                     literal ## and &gt; characters</span></pre>
+    </div>
+    <div class="note quiet"><strong>One known limitation.</strong> Substack re-hosts pasted images on its own CDN, which usually works but occasionally drops one on a large paste. After pasting, scroll the draft and confirm the category images all landed before you publish. Any that did not can be re-added from the output folder, which keeps the full-resolution originals.</div>
+  </div>
+</div>
+
+<!-- HOUSE RULES -->
+<div class="band band-canvas" id="rules">
+  <div class="wrap">
+    <p class="eyebrow">Editorial</p>
+    <h2>The house rules</h2>
+    <p class="desc">There are more than these. These are the ones that shape what the output actually reads like.</p>
+
+    <h3>Descriptive, never commentary</h3>
+    <p class="desc">Category descriptions say what an event <em>is</em>, not how good it is. No "worth attending", no "don't miss", no "the standout". Curation is expressed by what gets included, not by telling the reader it is good. The editorial voice lives in Top Hits, which is deliberately conversational; the category body is not.</p>
+    <div class="ba">
+      <div class="bad">
+        <span class="verdict">Commentary, never</span>
+        <q>This is a must-attend for anyone serious about CDR.</q>
+      </div>
+      <div class="good">
+        <span class="verdict">Descriptive, always</span>
+        <q>Isometric hosts a full-day summit for CDR buyers, suppliers, investors, and policymakers working through what defines quality and which financing structures hold at scale.</q>
+      </div>
+    </div>
+    <p class="desc dim" style="margin-top:14px;">The tell is any sentence that could be a review. The fix is to cut it and state the fact underneath.</p>
+
+    <h3>No em dashes</h3>
+    <p class="desc">The house substitute is a spaced hyphen. It is not a stylistic preference applied loosely: the shipped guides carry 935 spaced hyphens in NY 2025, 82 in PNW, 49 in Chicago, and 28 in London. A comma, a colon, or a restructured sentence is equally fine.</p>
+
+    <h3>Structural variety</h3>
+    <p class="desc">No two descriptions in a category may open or close the same way. Closing on a logistics note is fine once and grating three times in a row. Banned outright: any recurring closer template of the "This event suits X people" kind.</p>
+
+    <h3>Heading hierarchy is exact</h3>
+    <p class="desc">Title is <code>#</code>. The welcome one-liner is <code>###</code>, and it is the only unbolded heading in the document. The category name, its Highlights header, and its All Events header are all <code>##</code> as siblings, which is the piece people get wrong most: Highlights is not a child of the category. Top Hits day buckets are <code>####</code>. Highlight descriptions sit inside <code>&gt;</code> blockquotes.</p>
+
+    <h3>Categories come from the data</h3>
+    <p class="desc">The 26 are a ceiling, not a target. No Finance events in the spreadsheet means no Finance section, and a count is never carried over from a previous city. A category holding fewer than three events gets folded into wherever its events' own secondary categories point. It is never dropped, because dropping it would lose events.</p>
+
+    <h3>US spelling by default</h3>
+    <p class="desc">London is the single exception and publishes in British English.</p>
+  </div>
+</div>
+
+<!-- QA -->
+<div class="band band-surface" id="qa">
+  <div class="wrap">
+    <p class="eyebrow">Confidence</p>
+    <h2>Quality gates</h2>
+    <p class="desc">Eleven automated gates run before anything ships. Most of them are unremarkable sweeps. These are the sharp ones, and each exists because something got past a human once.</p>
+    <div class="grid grid-2" style="margin-top:32px;">
+      <div class="card">
+        <p class="card-title">Category number agreement</p>
+        <p class="small">The category count has to match across all four places it appears. This gate exists because the Chicago 2026 guide shipped with "26 Categories" in its contents and 24 everywhere else.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Adaptation-leftover sweep</p>
+        <p class="small">Scans for another city's names surviving an adaptation. Same guide: "How to LCAW" appeared in a Chicago guide, carried over from London.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Every event survives a fold</p>
+        <p class="small">A fold relocates events, it never removes them. The gate checks the post-fold set against the source of truth rather than trusting the operation.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Images resolve and are unique</p>
+        <p class="small">Every image link has to resolve, and no category may reuse another category's artwork.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">Blockquote count equals highlight count</p>
+        <p class="small">A cheap check that catches the most-missed piece of markup in the whole spec.</p>
+      </div>
+      <div class="card">
+        <p class="card-title">And six more</p>
+        <p class="small">Hard-rule sweeps, fabrication and self-plagiarism checks, placeholder reconciliation, link checking, cross-section count reconciliation, and a final voice and city-specificity read.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TROUBLE -->
+<div class="band band-canvas" id="trouble">
+  <div class="wrap">
+    <p class="eyebrow">Recovery</p>
+    <h2>When things go wrong</h2>
+    <p class="desc">A long run can lose its sandbox. This has happened in production, after the Airtable base was built but before any prose existed. The pipeline is built around that being survivable rather than around it not happening.</p>
+    <div class="faq-stack">
+      <details class="faq">
+        <summary>What a crash actually costs you</summary>
+        <div class="body">
+          <p>Artifacts are written to disk as they are finished, one file per category rather than one file at the end. So a crash costs the section in progress, not the run. If twenty-five categories are written and the twenty-sixth dies, you lose the twenty-sixth.</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>What keeps working when the sandbox dies</summary>
+        <div class="body">
+          <p>The Airtable connector and the browser do not depend on the sandbox. Base creation, row import, and link capture all still work when it dies. That is why Stage 1c tends to survive incidents that take out the writing stages.</p>
+        </div>
+      </details>
+      <details class="faq">
+        <summary>How to resume</summary>
+        <div class="body">
+          <p>Start a fresh conversation. Attach <code>events.csv</code> and <code>CHECKPOINT.md</code>. Say which stage to resume from, and say that the base already exists.</p>
+          <p>That last part matters. The plugin will not recreate an existing base, and you do not want it to: a second base means a second public form, while the first link may already be circulating.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <p class="head5">Climate Week Guide Builder</p>
+      <p>An eight-skill Claude Code plugin that turns a city's climate week calendar into a publishable Substack guide. Internal tooling for Climate Tech Cities chapter leads.</p>
+    </div>
+    <div>
+      <p class="head5">The skills</p>
+      <ul>
+        <li>ctc-climate-week-guide</li>
+        <li>climate-week-event-sourcer</li>
+        <li>ctc-climate-week-data-prep</li>
+        <li>ctc-climate-week-airtable</li>
+        <li>ctc-climate-week-top-hits</li>
+        <li>ctc-climate-week-intro</li>
+        <li>ctc-climate-week-category-guide</li>
+        <li>ctc-climate-week-qa</li>
+      </ul>
+    </div>
+    <div>
+      <p class="head5">On this page</p>
+      <ul>
+        <li><a href="#evidence">The evidence base</a></li>
+        <li><a href="#before">Before you start</a></li>
+        <li><a href="#pipeline">The pipeline</a></li>
+        <li><a href="#asks">What it asks for</a></li>
+        <li><a href="#output">What you get</a></li>
+        <li><a href="#rules">The house rules</a></li>
+        <li><a href="#qa">Quality gates</a></li>
+        <li><a href="#trouble">When things go wrong</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+window.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("details.faq > summary").forEach(function (s) {
+    s.setAttribute("role", "button");
+    s.setAttribute("aria-expanded", s.parentElement.open ? "true" : "false");
+    s.parentElement.addEventListener("toggle", function () {
+      s.setAttribute("aria-expanded", s.parentElement.open ? "true" : "false");
+    });
+  });
+});
+</script>
+</body>
+</html>
