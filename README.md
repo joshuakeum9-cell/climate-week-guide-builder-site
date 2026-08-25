@@ -58,6 +58,8 @@ reference site.
 ## Content rules this page follows
 
 - Nothing fake. Every claim traces to a `SKILL.md` or reference file in the plugin.
+- The plugin runs in Claude Cowork, not in chat. Stated in three places on the page.
+- Sample guide links carry counts verified by fetching the live posts, not from memory.
 - No invented metrics, timings, screenshots, or example output.
 - No em dashes, per house style. Spaced hyphens instead.
 - Sentence case headings.

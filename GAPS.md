@@ -40,13 +40,16 @@ The one thing I could see wanting most is the before/after of a Substack paste: 
 literal `##` characters next to the HTML paste rendering correctly. That is the page's most
 useful practical tip and a screenshot pair would land it harder than the diagram I drew.
 
-## 4. The four shipped guides are named but not linked
+## 4. Two of the four shipped guides are now linked, two are not
 
-The evidence table lists all four guides with their event and category counts, but no URLs, since
-the brief said to reference rather than reproduce and I did not want to guess at links. Two are
-visible in the plugin's formatting spec (`londonclimatetech.substack.com` and
-`nyc.climatetechcities.com`) but I have no confirmed canonical URL for the four specific posts.
-Send them and I will link the table rows.
+RESOLVED IN PART. The "See a finished guide" block at the end of "What you get"
+links the NY 2025 and NY 2024 posts, with counts verified by fetching both live
+pages (2025: 506 events, 25 themes, 23,144 words, which matches the evidence
+table exactly; 2024: 477 events, 24 themes). NY 2024 is labelled on the page as
+sitting outside the plugin's four-guide reference set, because it does.
+
+Still missing: canonical URLs for the London 2026, PNW 2026, and Chicago 2026
+guides. Send them and I will link those rows of the evidence table too.
 
 ## 5. No install or "how do I get this plugin" section
 
