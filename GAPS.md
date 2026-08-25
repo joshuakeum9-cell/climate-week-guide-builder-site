@@ -11,11 +11,14 @@ describes the system as **seven stages**, with 0b, 1b, 1c, 1d and 1e as sub-step
 them.
 
 Nine matches neither. I rendered all twelve rows and described it as **"Seven numbered stages,
-twelve steps in all"**, which is true against both the table and the SKILL.md. The hero says
-"7 of 12 steps" need you, counted off the Human column.
+twelve steps in all"**, which is true against both the table and the SKILL.md.
 
-If you want a different framing, it appears in three places: the hero stat, the pipeline
-section's opening line, and the intro sentence above the stepper.
+The hero briefly carried "7 of 12 steps need you", counted off the Human column. That was
+arithmetically right but misleading, since most of those steps run on their own and only ask a
+question in passing, and 1d is optional. It now reads "1 hard gate", naming Stage 1b.
+
+If you want a different framing, the twelve-step wording appears in two places: the pipeline
+section's opening line and the intro sentence above the stepper.
 
 ## 2. "Roughly an hour of your own attention"
 
@@ -58,11 +61,16 @@ chapter lead who lands on this page and has *not* yet installed the plugin has n
 That may be deliberate, since the audience is defined as someone who has just installed it. If
 you want a short install block, it needs the marketplace or repository install line.
 
-## 6. Deployment not performed
+## 6. Deployment — done
 
-I built the files and verified them locally. I have not created a repository, pushed anything, or
-deployed to Pages or Vercel, since the brief asked for deployable static output rather than a
-live deploy, and publishing is your call. `README.md` has the steps for both targets.
+RESOLVED. Live at https://joshuakeum9-cell.github.io/climate-week-guide-builder-site/ from the
+public repo `joshuakeum9-cell/climate-week-guide-builder-site`, deploying via
+`.github/workflows/pages.yml` with the Pages source set to GitHub Actions.
+
+One loose end: an earlier `climate-week-guide-builder-site` project also exists on Vercel and
+should be deleted. The Vercel MCP connector cannot see or remove it (`list_projects` returns
+empty and the project APIs 404, despite the deploy having succeeded through that same
+connector), so it has to go through the Vercel dashboard.
 
 ## 7. Per-stage timings
 
