@@ -222,6 +222,8 @@
   .hero-wrap h1 { max-width: 15em; margin: 0 auto; }
   .hero-sub { font-size: 18px; line-height: 1.5; color: var(--slate); max-width: 38em; margin: 20px auto 0; }
   .hero-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+  .hero-note { font-size: 14px; color: var(--slate); margin: 18px auto 0; }
+  .hero-note strong { font-weight: 600; color: var(--ink); }
   .hero-facts {
     background: var(--canvas); border: 1px solid var(--hairline-soft); border-radius: var(--r-lg);
     box-shadow: var(--shadow-mockup); padding: 8px 24px;
@@ -303,6 +305,15 @@
   ul.arts .fname { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--ink); }
   ul.arts .role { font-size: 13px; color: var(--steel); margin-left: 8px; }
   ul.arts p { font-size: 14px; line-height: 1.55; color: var(--slate); margin-top: 8px; max-width: 44em; }
+
+  /* ---------- sample guide cards ---------- */
+  a.samplecard { display: block; text-decoration: none; color: inherit;
+    transition: box-shadow 150ms ease, transform 150ms ease, border-color 150ms ease; }
+  a.samplecard:hover { box-shadow: var(--shadow-card); transform: translateY(-1px); border-color: var(--stone); }
+  a.samplecard .golink { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
+    font-size: 14px; font-weight: 500; color: var(--ink); }
+  a.samplecard .golink::after { content: "97"; font-size: 15px; }
+  .samplemeta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
   /* ---------- before / after ---------- */
   .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; max-width: 56em; }
@@ -401,6 +412,7 @@
       <a class="btn" href="#pipeline">See the pipeline</a>
       <a class="btn outline" href="#before">What you need first</a>
     </div>
+    <p class="hero-note">Runs in <strong>Claude Cowork</strong>, not in chat.</p>
     <div class="hero-facts">
       <div>
         <div class="n">8 skills</div>
@@ -459,7 +471,8 @@
   <div class="wrap">
     <p class="eyebrow">Prerequisites</p>
     <h2>Before you start</h2>
-    <p class="desc">Four things. The second one has no workaround, so check it before you begin rather than halfway through Stage 0b.</p>
+    <div class="note warn"><strong>Run this in Claude Cowork, not in chat.</strong> The pipeline writes files to disk as it goes, runs scripts, builds a Word document, and drives the Airtable and browser connectors. A plain chat window cannot do any of that, so the run cannot complete there. Everything below assumes Cowork.</div>
+    <p class="desc" style="margin-top:24px;">Four things. The second one has no workaround, so check it before you begin rather than halfway through Stage 0b.</p>
     <div class="grid grid-2" style="margin-top:32px;">
       <div class="card">
         <p class="card-title">A Luma calendar URL</p>
@@ -676,6 +689,21 @@ markdown source  <span class="dim">→</span>  paste
 <span class="dim">                     literal ## and &gt; characters</span></pre>
     </div>
     <div class="note quiet"><strong>One known limitation.</strong> Substack re-hosts pasted images on its own CDN, which usually works but occasionally drops one on a large paste. After pasting, scroll the draft and confirm the category images all landed before you publish. Any that did not can be re-added from the output folder, which keeps the full-resolution originals.</div>
+
+    <h3 style="margin-top:48px;">See a finished guide</h3>
+    <p class="desc">Both of these are published and live on Substack. This is what the end of a run actually looks like to a reader: the front matter, Top Hits, then every category section with its cover image, highlights, and full event list.</p>
+    <div class="grid grid-2" style="margin-top:20px;">
+      <a class="card samplecard" href="https://nyc.climatetechcities.com/p/the-great-ny-climate-week-2025-guide" target="_blank" rel="noopener">
+        <p class="card-title">The Great NY Climate Week 2025 Guide</p>
+        <p class="small">506 events across 25 themes, 23,144 words. This is one of the four guides the plugin&rsquo;s rules are derived from, so it is the closest thing to a reference output.</p>
+        <span class="golink">Read on Substack</span>
+      </a>
+      <a class="card samplecard" href="https://nyc.climatetechcities.com/p/the-great-ny-climate-week-2024-guide" target="_blank" rel="noopener">
+        <p class="card-title">The Great NY Climate Week 2024 Guide</p>
+        <p class="small">477 events across 24 themes. The previous year, useful for seeing which parts of the format stay fixed from one edition to the next. It is not part of the plugin&rsquo;s reference set.</p>
+        <span class="golink">Read on Substack</span>
+      </a>
+    </div>
   </div>
 </div>
 
@@ -789,7 +817,7 @@ markdown source  <span class="dim">→</span>  paste
   <div class="footer-grid">
     <div>
       <p class="head5">Climate Week Guide Builder</p>
-      <p>An eight-skill Claude Code plugin that turns a city's climate week calendar into a publishable Substack guide. Internal tooling for Climate Tech Cities chapter leads.</p>
+      <p>An eight-skill plugin that turns a city's climate week calendar into a publishable Substack guide. Runs in Claude Cowork, not in chat. Internal tooling for Climate Tech Cities chapter leads.</p>
     </div>
     <div>
       <p class="head5">The skills</p>
