@@ -1,5 +1,7 @@
 # Climate Week Guide Builder - documentation site
 
+**Live site:** [joshuakeum9-cell.github.io/climate-week-guide-builder-site](https://joshuakeum9-cell.github.io/climate-week-guide-builder-site/)
+
 A single static page documenting the `climate-week-guide-builder` plugin: what it is, how the
 pipeline runs, what a chapter lead has to do at each step, and what comes out the other end.
 
